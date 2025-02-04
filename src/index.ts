@@ -245,7 +245,8 @@ const chatBuilder = AppBuilder
     .setState(() => ({
         opennedChatId: undefined as string | undefined,
         userId: undefined as string | undefined,
-        reasoning: [] as string[]
+        reasoning: [] as string[],
+        lastAction: undefined as string | undefined
     }))
     .setWindowGenerator((state, generateWindow) => {
         const userId = state.userId;
@@ -289,7 +290,7 @@ const chatBuilder = AppBuilder
             ))
 
 
-        const allowSendMessage = chat.messages.at(-1)?.sender !== userId;
+        const allowSendMessage = state.lastAction !== "sendMessage";
 
         return {
             messages: [
@@ -333,6 +334,7 @@ const chatBuilder = AppBuilder
             currentState.reasoning = [...currentState.reasoning, data.function.args.notes!];
         }
 
+        currentState.lastAction = data.function.name;
 
         return currentState;
     })
