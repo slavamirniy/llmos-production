@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чаты</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .chat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .chat-card:hover {
+            transform: translateY(-2px);
+        }
+        .members {
+            color: #65676b;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .messages {
+            border-top: 1px solid #e4e6eb;
+            padding-top: 10px;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px 0;
+        }
+        .message .sender {
+            font-weight: bold;
+            color: #1877f2;
+        }
+        .reasoning {
+            background-color: #e7f3ff;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-style: italic;
+            color: #1d1d1d;
+        }
+        h1 {
+            color: #1c1e21;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Активные чаты</h1>
+        <div id="chats"></div>
+    </div>
+
+    <script>
+        function updateChats() {
+            fetch('/chats')
+                .then(response => response.json())
+                .then(chats => {
+                    const chatsContainer = document.getElementById('chats');
+                    chatsContainer.innerHTML = '';
+                    
+                    chats.forEach(chat => {
+                        const chatElement = document.createElement('div');
+                        chatElement.className = 'chat-card';
+                        
+                        const membersElement = document.createElement('div');
+                        membersElement.className = 'members';
+                        membersElement.textContent = `Участники: ${chat.members.join(', ')}`;
+                        
+                        const messagesElement = document.createElement('div');
+                        messagesElement.className = 'messages';
+                        
+                        // Добавляем последний reasoning для каждого участника
+                        const reasonings = new Map();
+                        chat.messages.forEach(message => {
+                            if (message.content.startsWith('Текущая ситуация: ')) {
+                                reasonings.set(message.sender, message.content.substring('Текущая ситуация: '.length));
+                            }
+                        });
+                        
+                        if (reasonings.size > 0) {
+                            const reasoningElement = document.createElement('div');
+                            reasoningElement.className = 'reasoning';
+                            let reasoningText = 'Размышления участников:\n';
+                            reasonings.forEach((reasoning, sender) => {
+                                reasoningText += `${sender}: ${reasoning}\n`;
+                            });
+                            reasoningElement.textContent = reasoningText;
+                            messagesElement.appendChild(reasoningElement);
+                        }
+                        
+                        chat.messages.forEach(message => {
+                            if (!message.content.startsWith('Текущая ситуация: ')) {
+                                const messageElement = document.createElement('div');
+                                messageElement.className = 'message';
+                                messageElement.innerHTML = `<span class="sender">${message.sender}:</span> ${message.content}`;
+                                messagesElement.appendChild(messageElement);
+                            }
+                        });
+                        
+                        chatElement.appendChild(membersElement);
+                        chatElement.appendChild(messagesElement);
+                        chatsContainer.appendChild(chatElement);
+                    });
+                });
+        }
+
+        // Обновляем чаты каждую секунду
+        setInterval(updateChats, 1000);
+        // Первое обновление при загрузке страницы
+        updateChats();
+    </script>
+</body>
+</html> 
