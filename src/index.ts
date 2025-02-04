@@ -3,7 +3,7 @@ import express from "express";
 import path from "path";
 
 type JsonSchemaProperty =
-    | { type: "string"; description?: string }
+    | { type: "string"; description?: string, enum?: string[] }
     | { type: "number"; description?: string }
     | { type: "boolean"; description?: string }
     | { type: "array"; items: JsonSchemaProperty; description?: string }
@@ -30,22 +30,18 @@ type WindowFunction<PROPS extends JsonSchemaProperty & { type: "object" }, INFO 
     parameters: PROPS
 }
 
-class FunctionsCollector<F extends Record<string, any>> {
+class FunctionsCollector<F extends Record<string, any>, STATE> {
 
     private functions: F = {} as F;
 
-    add<KEY extends string, DESCRIPTION extends string, VALUE extends JsonSchemaProperty>(functionName: KEY, functionDescription: DESCRIPTION, schema: VALUE) {
-        const data = {
-            name: functionName,
-            description: functionDescription,
-            parameters: schema
-        } as unknown as F[KEY];
-        this.functions[functionName as keyof F] = data;
+    add<KEY extends string, DESCRIPTION extends string, VALUE extends JsonSchemaProperty>(functionName: KEY, generator: ((state: STATE) => { functionDescription: DESCRIPTION, schema: VALUE })) {
+        // @ts-ignore
+        this.functions[functionName] = generator;
         return this as unknown as FunctionsCollector<F & { [K in KEY]: {
             name: K,
             description: DESCRIPTION,
             parameters: VALUE
-        } }>;
+        } }, STATE>;
     }
 
     getFunctions() {
@@ -75,28 +71,31 @@ type ButtonPressHandler<FUNCTIONS extends Record<string, WindowFunction<any, any
     } }[keyof FUNCTIONS],
     state: { get: () => STATE },
     generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>
-}) => STATE
+}) => STATE;
+
+type FunctionsToGeneratorType<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE> = { [K in keyof FUNCTIONS]: (state: STATE) => { functionDescription: FUNCTIONS[K]['description'], schema: FUNCTIONS[K]['parameters'] } };
 
 class AppBuilder<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE> {
     constructor(private data: {
-        functions?: FUNCTIONS,
+        functions?: FunctionsToGeneratorType<FUNCTIONS, STATE>,
         stateGenerator?: () => STATE,
         windowGenerator?: (state: STATE, generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>) => WindowWithFunctionsNames<FUNCTIONS>,
         buttonPressHandler?: ButtonPressHandler<FUNCTIONS, STATE>
     }) { }
 
+
     static start() {
-        return new AppBuilder({}) as unknown as Pick<AppBuilder<any, any>, 'setFunctionsSchemas'>;
+        return new AppBuilder({}) as unknown as Pick<AppBuilder<any, any>, 'setState'>;
     }
 
-    setFunctionsSchemas<NEW_FUNCTIONS extends Record<string, any>>(collector: (functionCollector: FunctionsCollector<{}>) => FunctionsCollector<NEW_FUNCTIONS>) {
-        this.data.functions = collector(new FunctionsCollector()).getFunctions() as unknown as FUNCTIONS;
-        return this as unknown as Pick<AppBuilder<NEW_FUNCTIONS, STATE>, 'setState'>;
+    setFunctionsSchemasGenerator<NEW_FUNCTIONS extends Record<string, any>>(collector: (functionCollector: FunctionsCollector<{}, STATE>) => FunctionsCollector<NEW_FUNCTIONS, STATE>) {
+        this.data.functions = collector(new FunctionsCollector()).getFunctions() as unknown as FunctionsToGeneratorType<FUNCTIONS, STATE>;
+        return this as unknown as Pick<AppBuilder<NEW_FUNCTIONS, STATE>, 'setWindowGenerator'>;
     }
 
     setState<NEW_STATE>(stateGenerator: () => NEW_STATE) {
         this.data.stateGenerator = stateGenerator as any;
-        return this as unknown as Pick<AppBuilder<FUNCTIONS, NEW_STATE>, 'setWindowGenerator'>;
+        return this as unknown as Pick<AppBuilder<FUNCTIONS, NEW_STATE>, 'setFunctionsSchemasGenerator'>;
     }
 
     setWindowGenerator(generator: (state: STATE, generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>) => WindowWithFunctionsNames<FUNCTIONS>) {
@@ -129,7 +128,7 @@ class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE> {
         public state: STATE,
         private windowGenerator: (state: STATE, generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>) => WindowWithFunctionsNames<FUNCTIONS>,
         private buttonPressHandler: ButtonPressHandler<FUNCTIONS, STATE>,
-        private functions: FUNCTIONS
+        private functions?: FunctionsToGeneratorType<FUNCTIONS, STATE>
     ) { }
 
     private generateWindow = (state: STATE) => this.windowGenerator(state, this.generateWindow);
@@ -141,11 +140,24 @@ class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE> {
 
 
     private prepareWindow(window: WindowWithFunctionsNames<FUNCTIONS>): WindowWithFunctions<FUNCTIONS> {
+
+        const functions = window.availableFunctions.map(v => ({
+            name: v,
+            function: this.functions![v](this.state)
+        }))
+
         return {
             messages: window.messages,
-            availableFunctions: window.availableFunctions.map(v => ({ type: 'function', function: this.functions[v] }))
+            availableFunctions: functions.map(v => ({
+                type: 'function', function: {
+                    name: v.name,
+                    description: v.function.functionDescription,
+                    parameters: v.function.schema
+                }
+            }))
         }
     }
+
 
 
     pressButton<FUNCTION_NAME extends keyof FUNCTIONS>(
@@ -190,67 +202,71 @@ const chats: {
 
 const chatBuilder = AppBuilder
     .start()
-    .setFunctionsSchemas(v => v
-        .add("sendMessage",
-            "Отправка сообщения в чат",
-            {
-                type: "object",
-                properties: {
-                    message: {
-                        type: "string"
-                    },
-                    notes: {
-                        type: "string",
-                        description: "Ваши заметки по пути расследования"
-                    }
-                },
-                required: ["message"]
-            })
-
-        .add("openChat",
-            "Открытие чата с пользователем",
-            {
-                type: "object",
-                properties: {
-                    chatId: {
-                        type: "string"
-                    },
-                    notes: {
-                        type: "string",
-                        description: "Ваши заметки по пути расследования"
-                    }
-
-                },
-                required: ["chatId"]
-            })
-
-
-        .add("openChatList",
-            "Открытие списка чатов",
-            {
-                type: "object",
-                properties: {
-                    notes: {
-                        type: "string",
-                        description: "Ваши заметки по пути расследования"
-                    }
-                },
-
-                required: []
-
-            }
-        )
-
-    )
     .setState(() => ({
         opennedChatId: undefined as string | undefined,
         userId: undefined as string | undefined,
-        reasoning: [] as string[],
-        lastAction: undefined as string | undefined
+        reasoning: "" as string,
+        lastAction: undefined as string | undefined,
+        allowedChats: [] as string[]
+
     }))
+    .setFunctionsSchemasGenerator(v => v
+        .add("sendMessage",
+            (state) => ({
+                functionDescription: "Отправка сообщения в чат",
+                schema: {
+                    type: "object",
+                    properties: {
+                        message: {
+                            type: "string"
+                        },
+                        notes: {
+                            type: "string",
+                            description: "Ваши заметки по пути расследования"
+                        }
+                    },
+                    required: ["message"]
+                }
+            }))
+        .add("openChat",
+            (state) => ({
+                functionDescription: "Открытие чата с пользователем",
+                schema: {
+                    type: "object",
+                    properties: {
+                        chatId: {
+                            type: "string",
+                            enum: state.allowedChats
+                        },
+                        notes: {
+                            type: "string",
+                            description: "Ваши заметки по пути расследования"
+                        }
+
+                    },
+                    required: ["chatId"]
+                }
+            }))
+
+        .add("openChatList",
+            (state) => ({
+                functionDescription: "Открытие списка чатов",
+                schema: {
+                    type: "object",
+                    properties: {
+                        notes: {
+                            type: "string",
+                            description: "Ваши заметки по пути расследования"
+                        }
+                    },
+                    required: []
+                }
+            }))
+
+    )
     .setWindowGenerator((state, generateWindow) => {
         const userId = state.userId;
-        const additionalMessages = state.reasoning ? [{ content: "Ваш ход размышлений:\n" + state.reasoning.map((reason, index) => `${index + 1}. ${reason}`).join("\n"), role: "system" }] : [];
+        const additionalMessages = state.reasoning.length > 0 ? [{ content: "Ваш ход размышлений:\n" + state.reasoning, role: "system" }] : [];
         if (!userId) return {
             messages: [{ content: "Вы не авторизованы", role: "system" }],
             availableFunctions: []
@@ -267,8 +283,6 @@ const chatBuilder = AppBuilder
                 messages: [...additionalMessages, { content: "Список доступных пользователей для общения:\n" + avaliableUsersString, role: "system" }],
                 availableFunctions: ["openChat"]
             };
-
-
         }
 
         const chat = chats.find(chat => chat.members.includes(userId) && chat.members.includes(state.opennedChatId!));
@@ -280,17 +294,17 @@ const chatBuilder = AppBuilder
         const messages = chat.messages
             .map(message => (message.sender === userId ?
                 {
-                    content: "Вы: " + message.content,
+                    content: message.content,
                     role: "assistant"
                 } :
                 {
-                    content: message.sender + ": " + message.content,
+                    content: message.content,
                     role: "user"
                 }
             ))
 
 
-        const allowSendMessage = state.lastAction !== "sendMessage";
+        const allowSendMessage = chat.messages.at(-1)?.sender !== state.userId;
 
         return {
             messages: [
@@ -299,7 +313,8 @@ const chatBuilder = AppBuilder
                     content: "У вас открыт чат с " + state.opennedChatId,
                     role: "system"
                 },
-                ...messages
+                ...messages,
+                ...(!allowSendMessage ? [{ content: "СИСТЕМНОЕ СООБЩЕНИЕ: Вы не можете отправить сообщение, пока пользователь вам не ответит", role: "system" }] : [])
             ],
             availableFunctions: ["openChatList", ...(allowSendMessage ? ["sendMessage"] : [])]
             // availableFunctions: ["openChatList", "sendMessage"]
@@ -308,6 +323,8 @@ const chatBuilder = AppBuilder
 
     .setButtonPressHandler((data) => {
         const currentState = data.state.get();
+
+        currentState.lastAction = data.function.name;
 
         if (data.function.name === "sendMessage") {
             if (!currentState.opennedChatId) {
@@ -331,10 +348,9 @@ const chatBuilder = AppBuilder
         }
 
         if (data.function.args.notes !== undefined) {
-            currentState.reasoning = [...currentState.reasoning, data.function.args.notes!];
+            currentState.reasoning = data.function.args.notes;
         }
 
-        currentState.lastAction = data.function.name;
 
         return currentState;
     })
@@ -345,7 +361,12 @@ class ChatAgent {
 
     constructor(private app: App<any, any>, private userId: string, private actAs: string) {
         this.app.state.userId = userId;
+        this.app.state.allowedChats = chats
+            .filter(v => v.members.includes(userId))
+            .map(v => v.members.find(member => member !== userId)!)
+            .flat();
     }
+
 
     async act() {
         let currentWindow = this.app.getCurrentWindow();
@@ -368,9 +389,6 @@ class ChatAgent {
             console.log(this.app.state.userId, "нажал", functionName, args.chatId ?? args.message);
             this.app.pressButton(functionName, args);
         } catch (err) {
-            if (response.choices[0].message.content && this.app.state.opennedChatId !== undefined) {
-                this.app.pressButton("sendMessage", { message: response.choices[0].message.content });
-            }
             // console.log(err);
         }
     }
@@ -379,6 +397,7 @@ class ChatAgent {
 
 // сделать enum
 // сделать чтобы могли писать повторно но не сразу
+// приложения при октрытии могут менять базовый промпт
 // аддоны могут
 // - менять функции
 // - менять поведение по нажатию кнопки
