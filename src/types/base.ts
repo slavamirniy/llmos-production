@@ -1,10 +1,12 @@
+import { FunctionsGenerator, FunctionsCollector } from "./builder.js";
 import { JsonSchemaProperty, JsonSchemaToType } from "./jsonschema.js";
 
 export type WindowFunction<PROPS extends JsonSchemaProperty & { type: "object" }, INFO extends { name: string, description: string }> = {
     name: INFO['name'],
     description: INFO['description'],
-    parameters: PROPS
+    parameters: PROPS,
 }
+
 
 export type Message = {
     role: string,
@@ -32,14 +34,17 @@ export type ButtonPressHandler<FUNCTIONS extends Record<string, WindowFunction<a
     generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>
 }) => STATE;
 
-export type FunctionsToGeneratorType<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE> = { [K in keyof FUNCTIONS]: (state: STATE) => { functionDescription: FUNCTIONS[K]['description'], schema: FUNCTIONS[K]['parameters'] } };
+export type FunctionsToGeneratorType<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> = { [K in keyof FUNCTIONS]: (state: STATE) => { functionDescription: FUNCTIONS[K]['description'], schema: FUNCTIONS[K]['parameters'] } };
 
-export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE> {
+export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
     constructor(
         public state: STATE,
         private windowGenerator: (state: STATE, generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>) => WindowWithFunctionsNames<FUNCTIONS>,
         private buttonPressHandler: ButtonPressHandler<FUNCTIONS, STATE>,
-        private functions?: FunctionsToGeneratorType<FUNCTIONS, STATE>
+        private functionsGenerator: FunctionsGenerator<FUNCTIONS, STATE>,
+        private basePromptGenerator: (state: STATE) => string,
+        private appDescription: string
+
     ) { }
 
     private generateWindow = (state: STATE) => this.windowGenerator(state, this.generateWindow);
@@ -49,12 +54,19 @@ export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STA
         return this.prepareWindow(window);
     }
 
+    getBasePrompt(): string {
+        return this.basePromptGenerator(this.state);
+    }
+
+    getAppDescription(): string {
+        return this.appDescription;
+    }
 
     private prepareWindow(window: WindowWithFunctionsNames<FUNCTIONS>): WindowWithFunctions<FUNCTIONS> {
-
+        const currentFunctions = this.functionsGenerator(new FunctionsCollector(), this.state).getFunctions();
         const functions = window.availableFunctions.map(v => ({
             name: v,
-            function: this.functions![v](this.state)
+            function: currentFunctions[v]
         }))
 
         return {
@@ -62,14 +74,12 @@ export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STA
             availableFunctions: functions.map(v => ({
                 type: 'function', function: {
                     name: v.name,
-                    description: v.function.functionDescription,
-                    parameters: v.function.schema
-                }
+                    description: v.function.description,
+                    parameters: v.function.parameters,
+                } as FUNCTIONS[keyof FUNCTIONS]
             }))
         }
     }
-
-
 
     pressButton<FUNCTION_NAME extends keyof FUNCTIONS>(
         functionName: FUNCTION_NAME,

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Окна участников</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .windows-container {
+            display: flex;
+            gap: 20px;
+            justify-content: space-between;
+        }
+        .window {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .window h2 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            text-transform: capitalize;
+        }
+        .messages {
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: white;
+        }
+        .message .role {
+            font-weight: bold;
+            color: #666;
+        }
+        .tools {
+            background-color: #eef2f7;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .tool {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: #0066cc;
+            text-decoration: none;
+            margin-right: 15px;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="index.html">Чаты</a>
+        <a href="windows.html">Окна</a>
+    </div>
+    <div class="windows-container" id="windows">
+        <!-- Окна будут добавлены через JavaScript -->
+    </div>
+
+    <script>
+        async function fetchWindows() {
+            const response = await fetch('/currentWindows');
+            const windows = await response.json();
+            const container = document.getElementById('windows');
+            container.innerHTML = '';
+
+            for (const [name, data] of Object.entries(windows)) {
+                const windowDiv = document.createElement('div');
+                windowDiv.className = 'window';
+                
+                let content = `<h2>${name}</h2>`;
+                
+                // Сообщения
+                content += '<div class="messages">';
+                for (const message of data.messages) {
+                    content += `
+                        <div class="message">
+                            <div class="role">${message.role}:</div>
+                            <div>${message.content}</div>
+                        </div>
+                    `;
+                }
+                content += '</div>';
+
+                // Инструменты
+                if (data.tools && data.tools.length > 0) {
+                    content += '<div class="tools"><h3>Доступные функции:</h3>';
+                    for (const tool of data.tools) {
+                        if (tool.type === 'function') {
+                            content += `
+                                <div class="tool">
+                                    <div>${tool.function.name}</div>
+                                    <div><small>${tool.function.description}</small></div>
+                                </div>
+                            `;
+                        }
+                    }
+                    content += '</div>';
+                }
+
+                windowDiv.innerHTML = content;
+                container.appendChild(windowDiv);
+            }
+        }
+
+        // Обновляем окна каждые 2 секунды
+        fetchWindows();
+        setInterval(fetchWindows, 2000);
+    </script>
+</body>
+</html> 

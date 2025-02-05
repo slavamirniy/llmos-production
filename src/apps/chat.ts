@@ -1,5 +1,27 @@
 import { AppBuilder } from "../types/builder.js";
 
+export const chats: {
+    members: [string, string],
+    messages: {
+        sender: string,
+        content: string
+    }[]
+}[] = [
+        {
+            members: ["Олег", "Алекс"],
+            messages: []
+        }, {
+            members: ["Олег", "Маша"],
+            messages: []
+        },
+        {
+            members: ["Алекс", "Маша"],
+            messages: []
+        }
+
+    ]
+
+
 export const chatBuilder = AppBuilder
     .start()
     .setState(() => ({
@@ -10,59 +32,44 @@ export const chatBuilder = AppBuilder
         allowedChats: [] as string[]
 
     }))
-    .setFunctionsSchemasGenerator(v => v
-        .add("sendMessage",
-            (state) => ({
-                functionDescription: "Отправка сообщения в чат",
-                schema: {
-                    type: "object",
-                    properties: {
-                        message: {
-                            type: "string"
-                        },
-                        notes: {
-                            type: "string",
-                            description: "Ваши заметки по пути расследования"
-                        }
-                    },
-                    required: ["message"]
+    .setFunctionsSchemasGenerator((v, state) => v
+        .add("sendMessage", "Отправка сообщения в чат", {
+            type: "object",
+            properties: {
+                message: {
+                    type: "string"
+                },
+                notes: {
+                    type: "string",
+                    description: "Ваши заметки по пути расследования"
                 }
-            }))
-        .add("openChat",
-            (state) => ({
-                functionDescription: "Открытие чата с пользователем",
-                schema: {
-                    type: "object",
-                    properties: {
-                        chatId: {
-                            type: "string",
-                            enum: state.allowedChats
-                        },
-                        notes: {
-                            type: "string",
-                            description: "Ваши заметки по пути расследования"
-                        }
-
-                    },
-                    required: ["chatId"]
+            },
+            required: ["message"]
+        })
+        .add("openChat", "Открытие чата с пользователем", {
+            type: "object",
+            properties: {
+                chatId: {
+                    type: "string",
+                    enum: state.allowedChats
+                },
+                notes: {
+                    type: "string",
+                    description: "Ваши заметки по пути расследования"
                 }
-            }))
-
-        .add("openChatList",
-            (state) => ({
-                functionDescription: "Открытие списка чатов",
-                schema: {
-                    type: "object",
-                    properties: {
-                        notes: {
-                            type: "string",
-                            description: "Ваши заметки по пути расследования"
-                        }
-                    },
-                    required: []
+            },
+            required: ["chatId"]
+        })
+        .add("openChatList", "Открытие списка чатов", {
+            type: "object",
+            properties: {
+                notes: {
+                    type: "string",
+                    description: "Ваши заметки по пути расследования"
                 }
-            }))
-
+            },
+            required: []
+        })
     )
     .setWindowGenerator((state, generateWindow) => {
         const userId = state.userId;
@@ -116,8 +123,7 @@ export const chatBuilder = AppBuilder
                 ...messages,
                 ...(!allowSendMessage ? [{ content: "СИСТЕМНОЕ СООБЩЕНИЕ: Вы не можете отправить сообщение, пока пользователь вам не ответит", role: "system" }] : [])
             ],
-            availableFunctions: ["openChatList", ...(allowSendMessage ? ["sendMessage"] : [])]
-            // availableFunctions: ["openChatList", "sendMessage"]
+            availableFunctions: ["openChatList", ...(allowSendMessage ? ["sendMessage"] : [])] as ("openChatList" | "sendMessage")[]
         };
     })
 
@@ -147,10 +153,18 @@ export const chatBuilder = AppBuilder
             currentState.opennedChatId = undefined;
         }
 
-        if (data.function.args.notes !== undefined) {
+        if (data.function.args && data.function.args.notes !== undefined) {
             currentState.reasoning = data.function.args.notes;
         }
 
 
         return currentState;
     })
+    .setBasePromptGenerator(state =>
+        state.opennedChatId !== undefined ?
+            "У вас открыт чат с " + state.opennedChatId
+            :
+            ""
+    )
+
+    .setAppDescription("Это приложение для общения с пользователями. Вы можете открыть чат с пользователем, отправить им сообщение и просматривать список доступных пользователей для общения.")

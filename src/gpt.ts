@@ -3,6 +3,7 @@ import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Agent as HttpAgent } from 'http';
 import { Agent as HttpsAgent } from 'https';
+import { Tool } from "./types/os.js";
 
 let USE_PROXY = true;
 
@@ -59,13 +60,12 @@ export async function makeGptRequest(messages: any[], tools: any[] | undefined, 
             model: 'gpt-4o',
             messages: messages,
             ...(tools ? { tools: tools, parallel_tool_calls } : {}),
-            ...(jsonSchema ?
+            ...(jsonSchema !== undefined ?
                 {
                     response_format: {
-
                         type: 'json_schema',
                         json_schema: {
-                            name: 'response_format',
+                            name: 'button_execute_schema',
                             schema: jsonSchema
                         }
                     }
@@ -84,4 +84,45 @@ export async function makeGptRequest(messages: any[], tools: any[] | undefined, 
         console.error('Error generating prompt:', error);
         throw error;
     }
+}
+
+export async function makeGptRequestToolsAsSchema(messages: any[], tools: Tool[]) {
+    const schema = {
+        strict: true,
+        type: 'object',
+        description: 'Нажать кнопку',
+        oneOf: tools.map(tool => ({
+            type: 'object',
+            strict: true,
+            properties: {
+                name: { type: 'string', enum: [tool.function.name] },
+                description: { type: 'string', enum: [tool.function.description] },
+                properties: { ...tool.function.parameters, strict: true }
+            },
+            required: ['name', 'description', 'properties'],
+            additionalProperties: false
+        }))
+    };
+
+    const result = await makeGptRequest(messages, undefined, undefined, {
+        type: 'object',
+        properties: {
+            tool_call: schema
+        }
+    });
+
+    const parsed = JSON.parse(result.choices[0].message.content);
+
+    if (parsed.tool_call.name === undefined) {
+        console.log("Tool call name is undefined");
+        return makeGptRequestToolsAsSchema(messages, tools);
+    }
+
+    return {
+        tool_call: {
+            name: parsed.tool_call.name,
+            arguments: parsed.tool_call.properties
+        }
+    };
+
 }
