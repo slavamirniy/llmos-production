@@ -66,7 +66,6 @@ export async function makeGptRequest(messages: any[], tools: any[] | undefined, 
                         type: 'json_schema',
                         json_schema: {
                             name: 'button_execute_schema',
-                            strict: true,
                             schema: jsonSchema
                         }
                     }
@@ -88,7 +87,6 @@ export async function makeGptRequest(messages: any[], tools: any[] | undefined, 
 }
 
 export async function makeGptRequestToolsAsSchema(messages: any[], tools: Tool[]) {
-
     const schema = {
         type: 'object',
         description: 'Нажать кнопку',
@@ -97,7 +95,7 @@ export async function makeGptRequestToolsAsSchema(messages: any[], tools: Tool[]
             properties: {
                 name: { type: 'string', enum: [tool.function.name] },
                 description: { type: 'string', enum: [tool.function.description] },
-                properties: { ...tool.function.parameters, strict: true }
+                properties: { ...tool.function.parameters }
             },
             required: ['name', 'description', 'properties'],
             additionalProperties: false
