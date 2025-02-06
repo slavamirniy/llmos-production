@@ -119,8 +119,7 @@ export type ButtonPressHandlerMiddleware<FUNCTIONS extends Record<string, Window
 }) => STATE;
 
 
-class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
-
+export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
 
     constructor(private data: {
         app?: BASEAPP,
@@ -206,7 +205,7 @@ class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
 
 }
 
-class AddonsCollector<APP extends IApp<any, any>> {
+export class AddonsCollector < APP extends IApp < any, any >> {
     private constructor(private app: APP) { }
 
     static from<APP extends App<any, any>>(app: APP): AddonsCollector<APP> {
