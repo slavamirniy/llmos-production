@@ -223,24 +223,3 @@ class AddonsCollector<APP extends IApp<any, any>> {
         return this.app;
     }
 }
-
-import { chatBuilder } from "../apps/chat.js";
-
-
-const c = AddonBuilder
-    .start<ReturnType<typeof chatBuilder.build>>()
-    .setState(() => ({
-        messagesCount: 0
-    }))
-    .setFunctionsSchemasMiddleware((functions, addonState, appState) => functions)
-    .setWindowMiddleware((window, addonState, appState) => window)
-    .setButtonPressHandlerMiddleware((data) => {
-        if (data.function.name === 'sendMessage')
-            return {
-                messagesCount: data.addonState.get().messagesCount + 1
-            }
-        return data.addonState.get();
-    })
-    .setBasePromptMiddleware((prompt, addonState, appState) => prompt)
-    .setAppDescriptionMiddleware((appDescription) => appDescription)
-
