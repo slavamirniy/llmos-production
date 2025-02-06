@@ -66,6 +66,7 @@ export async function makeGptRequest(messages: any[], tools: any[] | undefined, 
                         type: 'json_schema',
                         json_schema: {
                             name: 'button_execute_schema',
+                            strict: true,
                             schema: jsonSchema
                         }
                     }
@@ -88,28 +89,11 @@ export async function makeGptRequest(messages: any[], tools: any[] | undefined, 
 
 export async function makeGptRequestToolsAsSchema(messages: any[], tools: Tool[]) {
 
-    const toolPrepared = tools.map(tool => ({
-        type: 'function',
-        function: {
-            name: tool.function.name,
-            description: tool.function.description,
-            parameters: JSON.parse(JSON.stringify(tool.function.parameters), (key, value) => {
-                if (value && typeof value === 'object' && value.type === 'object') {
-                    value.strict = true;
-                }
-                return value;
-            })
-        }
-    } as Tool))
-
-
     const schema = {
-        strict: true,
         type: 'object',
         description: 'Нажать кнопку',
         oneOf: tools.map(tool => ({
             type: 'object',
-            strict: true,
             properties: {
                 name: { type: 'string', enum: [tool.function.name] },
                 description: { type: 'string', enum: [tool.function.description] },
