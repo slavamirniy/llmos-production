@@ -4,9 +4,6 @@ import path from "path";
 import { chatBuilder, chats } from "./apps/chat.js";
 import { LLMOS } from "./types/os.js";
 
-// сделать рекурсивный strict для tools
-// Tool call name is undefined
-
 // аддоны могут
 // - менять функции
 // - менять поведение по нажатию кнопки

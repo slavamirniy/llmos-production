@@ -1,5 +1,5 @@
-import { App, ButtonPressHandler, FunctionsToGeneratorType, WindowFunction, WindowWithFunctionsNames } from "./base.js";
-import { JsonSchemaProperty } from "./jsonschema.js";
+import { Addon, App, ButtonPressHandler, IApp, WindowFunction, WindowWithFunctionsNames } from "./base.js";
+import { JsonSchemaProperty, JsonSchemaToType } from "./jsonschema.js";
 
 export class FunctionsCollector<F extends Record<string, any>, STATE> {
 
@@ -27,6 +27,8 @@ export class FunctionsCollector<F extends Record<string, any>, STATE> {
 
 
 export type FunctionsGenerator<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> = (functionCollector: FunctionsCollector<{}, STATE>, state: STATE) => FunctionsCollector<FUNCTIONS, STATE>;
+export type InferFunctionsFromFunctionsGenerator<T> = T extends FunctionsGenerator<infer F, any> ? F : never;
+
 
 export class AppBuilder<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
     constructor(private data: {
@@ -102,3 +104,143 @@ export class AppBuilder<FUNCTIONS extends Record<string, WindowFunction<any, any
     }
 
 }
+
+export type FunctionsMiddleware<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (functions: FUNCTIONS, addonState: STATE, appState: BASESTATE) => FUNCTIONS;
+export type WindowMiddleware<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (window: WindowWithFunctionsNames<FUNCTIONS>, addonState: STATE, appState: BASESTATE) => WindowWithFunctionsNames<FUNCTIONS>;
+export type BasePromptMiddleware<STATE extends Record<string, any>> = (prompt: string, addonState: STATE, appState: STATE) => string;
+export type AppDescriptionMiddleware = (appDescription: string) => string;
+export type ButtonPressHandlerMiddleware<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (data: {
+    function: { [K in keyof FUNCTIONS]: {
+        name: K,
+        args: JsonSchemaToType<FUNCTIONS[K]['parameters']>
+    } }[keyof FUNCTIONS],
+    appState: { get: () => BASESTATE },
+    addonState: { get: () => STATE },
+}) => STATE;
+
+
+class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
+
+
+    constructor(private data: {
+        app?: BASEAPP,
+        functionsMiddleware?: FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
+        stateGenerator?: () => STATE,
+        windowMiddleware?: WindowMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
+        buttonPressHandlerMiddleware?: ButtonPressHandlerMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
+        basePromptMiddleware?: BasePromptMiddleware<STATE>,
+        appDescriptionMiddleware?: AppDescriptionMiddleware
+
+    }) { }
+
+
+    static start<APP extends App<any, any>>() {
+        return new AddonBuilder<APP, any, any>({}) as unknown as Pick<AddonBuilder<APP, any, any>, 'setState'>;
+    }
+
+    // @ts-ignore
+    setFunctionsSchemasMiddleware<NEW_FUNCTIONS extends InferFunctionsFromFunctionsGenerator<BASEAPP['functionsGenerator']>>(middleware: FunctionsMiddleware<NEW_FUNCTIONS, STATE, BASEAPP['state']>) {
+        this.data.functionsMiddleware = middleware as unknown as FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, NEW_FUNCTIONS, STATE>, 'setWindowMiddleware'>;
+    }
+
+    setState<NEW_STATE extends STATE>(stateGenerator: () => NEW_STATE) {
+        this.data.stateGenerator = stateGenerator as any;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, NEW_STATE>, 'setFunctionsSchemasMiddleware'>;
+    }
+
+    setWindowMiddleware(middleware: WindowMiddleware<FUNCTIONS, STATE, BASEAPP['state']>) {
+        this.data.windowMiddleware = middleware;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setButtonPressHandlerMiddleware'>;
+    }
+
+
+    setButtonPressHandlerMiddleware(middleware: ButtonPressHandlerMiddleware<FUNCTIONS, STATE, BASEAPP['state']>) {
+        this.data.buttonPressHandlerMiddleware = middleware;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setBasePromptMiddleware'>;
+    }
+
+
+
+    setBasePromptMiddleware(middleware: BasePromptMiddleware<STATE>) {
+        this.data.basePromptMiddleware = middleware;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setAppDescriptionMiddleware'>;
+    }
+
+
+    setAppDescriptionMiddleware(middleware: AppDescriptionMiddleware) {
+        this.data.appDescriptionMiddleware = middleware;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setApp'>;
+    }
+
+    setApp(app: BASEAPP) {
+        this.data.app = app;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'build'>;
+    }
+
+    build(initAddonState?: Partial<STATE>) {
+        if (!this.data.functionsMiddleware) throw new Error("Functions middleware not set");
+
+        if (!this.data.stateGenerator) throw new Error("State generator not set");
+        if (!this.data.windowMiddleware) throw new Error("Window middleware not set");
+        if (!this.data.buttonPressHandlerMiddleware) throw new Error("Button press handler middleware not set");
+        if (!this.data.basePromptMiddleware) throw new Error("Base prompt middleware not set");
+        if (!this.data.appDescriptionMiddleware) throw new Error("App description middleware not set");
+        if (!this.data.app) throw new Error("App not set");
+
+        const addon = new Addon(this.data.app, this.data.stateGenerator(), {
+            appDescriptionMiddleware: this.data.appDescriptionMiddleware,
+            basePromptMiddleware: this.data.basePromptMiddleware,
+            buttonPressHandlerMiddleware: this.data.buttonPressHandlerMiddleware,
+            functionsMiddleware: this.data.functionsMiddleware,
+            stateGenerator: this.data.stateGenerator,
+            windowMiddleware: this.data.windowMiddleware,
+        });
+
+        if (initAddonState) {
+            addon.state = { ...addon.state, ...initAddonState };
+        }
+
+        return addon;
+    }
+
+}
+
+class AddonsCollector<APP extends IApp<any, any>> {
+    private constructor(private app: APP) { }
+
+    static from<APP extends App<any, any>>(app: APP): AddonsCollector<APP> {
+        return new AddonsCollector(app);
+    }
+
+    use<NEW_APP extends IApp<any, any>>(addon: AddonBuilder<APP, any, any>): AddonsCollector<NEW_APP> {
+        this.app = addon.setApp(this.app).build() as unknown as APP;
+        return this as unknown as AddonsCollector<NEW_APP>;
+    }
+
+
+    build(): APP {
+        return this.app;
+    }
+}
+
+import { chatBuilder } from "../apps/chat.js";
+
+
+const c = AddonBuilder
+    .start<ReturnType<typeof chatBuilder.build>>()
+    .setState(() => ({
+        messagesCount: 0
+    }))
+    .setFunctionsSchemasMiddleware((functions, addonState, appState) => functions)
+    .setWindowMiddleware((window, addonState, appState) => window)
+    .setButtonPressHandlerMiddleware((data) => {
+        if (data.function.name === 'sendMessage')
+            return {
+                messagesCount: data.addonState.get().messagesCount + 1
+            }
+        return data.addonState.get();
+    })
+    .setBasePromptMiddleware((prompt, addonState, appState) => prompt)
+    .setAppDescriptionMiddleware((appDescription) => appDescription)
+
