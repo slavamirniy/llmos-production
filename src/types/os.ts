@@ -1,4 +1,4 @@
-import { App, Message, WindowFunction, WindowWithFunctions } from "./base.js";
+import { App, IApp, Message, WindowFunction, WindowWithFunctions } from "./base.js";
 import { AppBuilder } from "./builder.js";
 
 export type Tool = {
@@ -20,7 +20,7 @@ const OSApp = AppBuilder
     .start()
     .setState(() => ({
         opennedApps: [] as string[],
-        apps: {} as Record<string, App<any, any>>,
+        apps: {} as Record<string, IApp<any, any>>,
         windowsMap: {} as Record<string, WindowWithFunctions<any>>
     }))
     .setFunctionsSchemasGenerator((v, state) => {
@@ -28,12 +28,12 @@ const OSApp = AppBuilder
         if (state.opennedApps.length === 0) {
             collector
                 .add("closeApp",
-                    "Закрыть приложение", {
+                    "Close application", {
                     type: "object",
                     properties: {},
                     required: []
                 })
-                .add("openApp", "Открыть приложение", {
+                .add("openApp", "Open application", {
                     type: "object",
                     properties: {
                         appName: { type: "string", enum: Object.keys(state.apps) }
@@ -61,7 +61,7 @@ const OSApp = AppBuilder
                 availableFunctions: ['openApp'],
                 messages: [{
                     role: "system",
-                    content: "Доступные приложения: " + appNames.join(", ")
+                    content: "Available applications: " + appNames.join(", ")
                 }]
             }
         }
@@ -103,14 +103,14 @@ const OSApp = AppBuilder
         return state;
     })
     .setBasePromptGenerator(state =>
-        "Вы находитесь в опреационной системе. Здесь есть разные приложения. Вы можете открывать их с помощью tools - openApp и закрывать с помощью tools - closeApp.\n" +
-        "Описание доступных приложений: " + Object.keys(state.apps).map(app => "Приложение " + app + ": " + state.apps[app].getAppDescription()).join("\n") + "\n" +
-        (state.opennedApps.length > 0 ? ("Контекст открытых приложений: " + state.opennedApps.map(app => state.apps[app].getBasePrompt()).join("\n") + "\n") : "")
+        "You are in an operating system. There are different applications here. You can open them using tools - openApp and close them using tools - closeApp.\n" +
+        "Description of available applications: " + Object.keys(state.apps).map(app => "Application " + app + ": " + state.apps[app].getAppDescription()).join("\n") + "\n" +
+        (state.opennedApps.length > 0 ? ("Context of opened applications: " + state.opennedApps.map(app => state.apps[app].getBasePrompt()).join("\n") + "\n") : "")
     )
-    .setAppDescription("Это опреационная система. Вы можете открывать и закрывать приложения.")
+    .setAppDescription("This is an operating system. You can open and close applications.")
 
 
-export class LLMOS<APPS extends Record<string, App<any, any>>> {
+export class LLMOS<APPS extends Record<string, (IApp<any, any>) | App<any, any>>> {
     private data: {
         LLMRequestFunction: (messages: Message[], tools: Tool[]) => Promise<{
             tool_call?: {

@@ -138,7 +138,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
     }
 
     // @ts-ignore
-    setFunctionsSchemasMiddleware<NEW_FUNCTIONS extends InferFunctionsFromFunctionsGenerator<BASEAPP['functionsGenerator']>>(middleware: FunctionsMiddleware<NEW_FUNCTIONS, STATE, BASEAPP['state']>) {
+    setFunctionsSchemasMiddleware<NEW_FUNCTIONS>(middleware: (functions: InferFunctionsFromFunctionsGenerator<BASEAPP['functionsGenerator']>, addonState: STATE, appState: BASEAPP['state']) => NEW_FUNCTIONS) {
         this.data.functionsMiddleware = middleware as unknown as FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>;
         return this as unknown as Pick<AddonBuilder<BASEAPP, NEW_FUNCTIONS, STATE>, 'setWindowMiddleware'>;
     }
@@ -158,8 +158,6 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         this.data.buttonPressHandlerMiddleware = middleware;
         return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setBasePromptMiddleware'>;
     }
-
-
 
     setBasePromptMiddleware(middleware: BasePromptMiddleware<STATE>) {
         this.data.basePromptMiddleware = middleware;
@@ -205,14 +203,14 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
 
 }
 
-export class AddonsCollector < APP extends IApp < any, any >> {
+export class AddonsCollector<APP extends IApp<any, any>> {
     private constructor(private app: APP) { }
 
     static from<APP extends App<any, any>>(app: APP): AddonsCollector<APP> {
         return new AddonsCollector(app);
     }
 
-    use<NEW_APP extends IApp<any, any>>(addon: AddonBuilder<APP, any, any>): AddonsCollector<NEW_APP> {
+    use<NEW_APP extends IApp<any, any>>(addon: Pick<AddonBuilder<APP, any, any>, 'setApp'>): AddonsCollector<NEW_APP> {
         this.app = addon.setApp(this.app).build() as unknown as APP;
         return this as unknown as AddonsCollector<NEW_APP>;
     }
