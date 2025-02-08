@@ -135,7 +135,16 @@ export class LLMOS<APPS extends Record<string, (IApp<any, any>) | App<any, any>>
         }
 
 
-    constructor(data: typeof this.data) {
+    constructor(data: {
+        LLMRequestFunction: (messages: Message[], tools: Tool[]) => Promise<{
+            tool_call?: {
+                name: string;
+                arguments: any;
+            };
+        }>;
+        apps: APPS;
+        goal: string;
+    }) {
         this.data = data;
         this.OSApp.state.apps = this.data.apps;
     }
