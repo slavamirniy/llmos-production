@@ -9,6 +9,8 @@
     "target": "es2019",
     "moduleResolution": "node16",
     "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
     "outDir": "./built",
     "baseUrl": ".",
     "skipLibCheck": true,

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Text-based pseudo operating system",
   "main": "built/index.js",
+  "types": "built/index.d.ts",
   "type": "module",
   "files": [
     "built",
