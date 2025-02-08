@@ -135,7 +135,7 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
             stateGenerator: () => STATE,
             windowMiddleware: WindowMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
             buttonPressHandlerMiddleware: ButtonPressHandlerMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
-            basePromptMiddleware: BasePromptMiddleware<STATE>,
+            basePromptMiddleware: BasePromptMiddleware<STATE, BASEAPP['state']>,
             appDescriptionMiddleware: AppDescriptionMiddleware
         }
     ) {
