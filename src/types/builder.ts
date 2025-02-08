@@ -119,7 +119,7 @@ export type ButtonPressHandlerMiddleware<FUNCTIONS extends Record<string, Window
 }) => STATE;
 
 
-export class AddonBuilder<BASEAPP extends IApp<any, any> | App<any, any>, FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
+export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> {
 
     constructor(private data: {
         app?: BASEAPP,
@@ -138,7 +138,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any> | App<any, any>, FUNCTI
     }
 
     // @ts-ignore
-    setFunctionsSchemasMiddleware<NEW_FUNCTIONS>(middleware: (functions: InferFunctionsFromFunctionsGenerator<BASEAPP['functionsGenerator']>, addonState: STATE, appState: BASEAPP['state']) => NEW_FUNCTIONS) {
+    setFunctionsSchemasMiddleware<NEW_FUNCTIONS>(middleware: (functions: InferFunctionsFromFunctionsGenerator<ReturnType<BASEAPP['getGenerators']>['functionsGenerator']>, addonState: STATE, appState: BASEAPP['state']) => NEW_FUNCTIONS) {
         this.data.functionsMiddleware = middleware as unknown as FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>;
         // @ts-ignore
         return this as unknown as Pick<AddonBuilder<BASEAPP, NEW_FUNCTIONS, STATE>, 'setWindowMiddleware'>;
