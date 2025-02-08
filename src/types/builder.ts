@@ -140,6 +140,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
     // @ts-ignore
     setFunctionsSchemasMiddleware<NEW_FUNCTIONS>(middleware: (functions: InferFunctionsFromFunctionsGenerator<BASEAPP['functionsGenerator']>, addonState: STATE, appState: BASEAPP['state']) => NEW_FUNCTIONS) {
         this.data.functionsMiddleware = middleware as unknown as FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>;
+        // @ts-ignore
         return this as unknown as Pick<AddonBuilder<BASEAPP, NEW_FUNCTIONS, STATE>, 'setWindowMiddleware'>;
     }
 

@@ -2,17 +2,17 @@
   "name": "llm-os",
   "version": "1.0.0",
   "description": "Text-based pseudo operating system",
-  "main": "dist/index.js",
+  "main": "built/index.js",
   "type": "module",
   "files": [
-    "dist",
+    "built",
     "README.md"
   ],
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "start": "node dist/index.js",
-    "dev": "tsc -w & node --watch dist/index.js",
+    "start": "node built/index.js",
+    "dev": "tsc -w & node --watch built/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
