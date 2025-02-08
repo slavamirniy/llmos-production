@@ -182,7 +182,7 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
     }
 
     private prepareWindow(window: WindowWithFunctionsNames<FUNCTIONS>): WindowWithFunctions<FUNCTIONS> {
-        const currentFunctions = this.app.getGenerators().functionsGenerator(new FunctionsCollector(), this.addonState).getFunctions();
+        const currentFunctions = this.app.getGenerators().functionsGenerator(new FunctionsCollector(), this.app.state).getFunctions();
         const middlewaredFunctions = this.data.functionsMiddleware(currentFunctions, this.addonState, this.app.state);
         const functions = window.availableFunctions.map(v => ({
             name: v,
