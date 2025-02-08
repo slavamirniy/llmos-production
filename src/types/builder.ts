@@ -107,7 +107,7 @@ export class AppBuilder<FUNCTIONS extends Record<string, WindowFunction<any, any
 
 export type FunctionsMiddleware<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (functions: FUNCTIONS, addonState: STATE, appState: BASESTATE) => FUNCTIONS;
 export type WindowMiddleware<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (window: WindowWithFunctionsNames<FUNCTIONS>, addonState: STATE, appState: BASESTATE) => WindowWithFunctionsNames<FUNCTIONS>;
-export type BasePromptMiddleware<STATE extends Record<string, any>> = (prompt: string, addonState: STATE, appState: STATE) => string;
+export type BasePromptMiddleware<STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (prompt: string, addonState: STATE, appState: BASESTATE) => string;
 export type AppDescriptionMiddleware = (appDescription: string) => string;
 export type ButtonPressHandlerMiddleware<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>, BASESTATE extends Record<string, any>> = (data: {
     function: { [K in keyof FUNCTIONS]: {
@@ -127,7 +127,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         stateGenerator?: () => STATE,
         windowMiddleware?: WindowMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
         buttonPressHandlerMiddleware?: ButtonPressHandlerMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
-        basePromptMiddleware?: BasePromptMiddleware<STATE>,
+        basePromptMiddleware?: BasePromptMiddleware<STATE, BASEAPP['state']>,
         appDescriptionMiddleware?: AppDescriptionMiddleware
 
     }) { }
@@ -160,7 +160,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setBasePromptMiddleware'>;
     }
 
-    setBasePromptMiddleware(middleware: BasePromptMiddleware<STATE>) {
+    setBasePromptMiddleware(middleware: BasePromptMiddleware<STATE, BASEAPP['state']>) {
         this.data.basePromptMiddleware = middleware;
         return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setAppDescriptionMiddleware'>;
     }
