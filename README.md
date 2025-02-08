@@ -1,5 +1,12 @@
 # LLM OS - Operating System for Large Language Models
 
+## Installation
+
+```bash
+npm install github:slavamirniy/llmos-production
+```
+
+
 ## Overview
 LLM OS is an innovative operating system designed specifically for Large Language Models (LLMs). It unifies various AI Agent design architectures and enables simple creation of LLM-based applications through visual workflow editors like n8n.
 
@@ -59,6 +66,12 @@ This codebase represents a declarative implementation of the LLM OS concept, foc
 ---
 
 # LLM OS - Операционная система для Больших Языковых Моделей
+
+## Установка
+
+```bash
+npm install github:slavamirniy/llmos-production
+```
 
 ## Обзор
 LLM OS - это инновационная операционная система, разработанная специально для Больших Языковых Моделей (LLM). Она объединяет различные архитектуры дизайна ИИ-агентов и делает возможным простое создание приложений на базе LLM через визуальные редакторы воркфлоу, такие как n8n.
