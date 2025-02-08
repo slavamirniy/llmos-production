@@ -115,3 +115,37 @@ LLM OS - это инновационная операционная систем
 
 ## Реализация
 Данный код представляет собой декларативную реализацию концепции LLM OS, фокусируясь на модульности, расширяемости и простоте использования.
+
+# llm-os
+
+Text-based pseudo operating system
+
+## Установка
+
+Вы можете установить этот пакет напрямую с GitHub:
+
+```bash
+npm install github:your-username/llmos
+```
+
+или добавить в package.json:
+
+```json
+{
+  "dependencies": {
+    "llm-os": "github:your-username/llmos"
+  }
+}
+```
+
+## Использование
+
+```typescript
+import 'llm-os';
+
+// Ваш код здесь
+```
+
+## Лицензия
+
+ISC
