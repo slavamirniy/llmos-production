@@ -47,7 +47,6 @@ export const OSAppBuilder = AppBuilder
 
         return collector as any;
     })
-    // @ts-ignore
     .setWindowGenerator(state => {
 
         const appNames = Object.keys(state.apps);
@@ -69,7 +68,7 @@ export const OSAppBuilder = AppBuilder
         throwIfDuplicateToolName(tools);
 
         return {
-            availableFunctions: [tools.map(v => v.function.name), 'openApp'],
+            availableFunctions: [...tools.map(v => v.function.name), 'openApp'],
             messages: messages
         }
     })
