@@ -26,29 +26,20 @@ export const OSAppBuilder = AppBuilder
     }))
     .setFunctionsSchemasGenerator((v, state) => {
         const collector = v;
-        if (state.opennedApps.length === 0) {
-            collector
-                .add("closeApp",
-                    "Close application", {
-                    type: "object",
-                    properties: {},
-                    required: []
-                })
-                .add("openApp", "Open application", {
-                    type: "object",
-                    properties: {
-                        appName: { type: "string", enum: Object.keys(state.apps) }
-                    },
-                    required: ["appName"]
-                })
-            return collector;
-        }
 
         const window = state.opennedApps.map(appName => state.windowsMap[appName]);
         const tools = window.map(v => v.availableFunctions).flat();
 
         tools.forEach(tool => {
             collector.add(tool.function.name, tool.function.description, tool.function.parameters)
+        })
+
+        collector.add("openApp", "Open application", {
+            type: "object",
+            properties: {
+                appName: { type: "string", enum: Object.keys(state.apps) }
+            },
+            required: ["appName"]
         })
 
         return collector as any;
