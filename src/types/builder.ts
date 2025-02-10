@@ -202,7 +202,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         });
 
         if (this.data.initState) {
-            addon.state = { ...addon.state, ...this.data.initState };
+            addon.addonState = { ...addon.addonState, ...this.data.initState };
         }
 
         return addon;
