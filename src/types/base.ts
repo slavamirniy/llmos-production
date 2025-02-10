@@ -138,9 +138,7 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
             basePromptMiddleware: BasePromptMiddleware<STATE, BASEAPP['state']>,
             appDescriptionMiddleware: AppDescriptionMiddleware
         }
-    ) {
-
-    }
+    ) { }
 
     getGenerators() {
         return {
@@ -152,30 +150,18 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
                 const window = this.app.getGenerators().windowGenerator(state, generateWindow);
                 return this.data.windowMiddleware(window, this.addonState, state);
             },
-            buttonPressHandler: (functionName: any, args: any) => {
-                const appstate = this.app.getGenerators().buttonPressHandler({
-                    function: {
-                        name: functionName as any,
-                        args
-                    },
-                    state: {
-                        get: () => this.state
-                    },
-                    generateWindow: this.generateWindow
-                });
-
+            buttonPressHandler: (data: any) => {
+                const appstate = this.app.getGenerators().buttonPressHandler(data);
                 return appstate;
             },
             basePromptGenerator: (state: any) => {
                 const basePrompt = this.app.getGenerators().basePromptGenerator(state);
-                const basePromptMiddlewared = this.data.basePromptMiddleware(basePrompt, this.addonState, state);
-                return basePromptMiddlewared;
+                return this.data.basePromptMiddleware(basePrompt, this.addonState, state);
             },
-            appDescription: () => {
+            appDescription: (() => {
                 const appDescription = this.app.getGenerators().appDescription;
-                const appDescriptionMiddlewared = this.data.appDescriptionMiddleware(appDescription);
-                return appDescriptionMiddlewared;
-            }
+                return this.data.appDescriptionMiddleware(appDescription);
+            })()
         } as any
     }
 
@@ -189,8 +175,7 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
 
     private generateWindow = (state: STATE) => {
         const window = this.app.getGenerators().windowGenerator(state, this.generateWindow);
-        const windowMiddlewared = this.data.windowMiddleware(window, this.addonState, this.app.state);
-        return windowMiddlewared;
+        return this.data.windowMiddleware(window, this.addonState, this.app.state);
     }
 
     getCurrentWindow(): WindowWithFunctions<FUNCTIONS> {
@@ -203,9 +188,8 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
     }
 
     getAppDescription(): string {
-        return this.getGenerators().appDescription();
+        return this.getGenerators().appDescription;
     }
-
 
     private prepareWindow(window: WindowWithFunctionsNames<FUNCTIONS>): WindowWithFunctions<FUNCTIONS> {
         const middlewaredFunctions = this.getGenerators().functionsGenerator(new FunctionsCollector(), this.app.state).getFunctions();
@@ -230,7 +214,16 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
         functionName: FUNCTION_NAME,
         args: JsonSchemaToType<FUNCTIONS[FUNCTION_NAME]['parameters']>
     ): void {
-        this.app.state = this.getGenerators().buttonPressHandler(functionName, args);
+        this.app.state = this.getGenerators().buttonPressHandler({
+            function: {
+                name: functionName as any,
+                args
+            },
+            state: {
+                get: () => this.state
+            },
+            generateWindow: this.generateWindow
+        });
 
         const addonstate = this.data.buttonPressHandlerMiddleware({
             function: {
