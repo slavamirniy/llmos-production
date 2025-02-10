@@ -53,6 +53,7 @@ export const OSAppBuilder = AppBuilder
 
         return collector as any;
     })
+    // @ts-ignore
     .setWindowGenerator(state => {
 
         const appNames = Object.keys(state.apps);
