@@ -16,12 +16,13 @@ function throwIfDuplicateToolName(tools: Tool[]) {
     }
 }
 
-const OSApp = AppBuilder
+export const OSAppBuilder = AppBuilder
     .start()
     .setState(() => ({
         opennedApps: [] as string[],
         apps: {} as Record<string, IApp<any, any>>,
-        windowsMap: {} as Record<string, WindowWithFunctions<any>>
+        windowsMap: {} as Record<string, WindowWithFunctions<any>>,
+        goal: "" as string
     }))
     .setFunctionsSchemasGenerator((v, state) => {
         const collector = v;
@@ -110,58 +111,25 @@ const OSApp = AppBuilder
     .setAppDescription("This is an operating system. You can open and close applications.")
 
 
-export class LLMOS<APPS extends Record<string, (IApp<any, any>) | App<any, any>>> {
-    private data: {
-        LLMRequestFunction: (messages: Message[], tools: Tool[]) => Promise<{
-            tool_call?: {
-                name: string,
-                arguments: any
-            }
-        }>,
-        apps: APPS,
-        goal: string,
-    };
-
-
-    private OSApp = OSApp.build();
-    private currentWindow: {
-        basePrompt: string,
-        messages: Message[],
-        tools: Tool[]
-    } = {
-            basePrompt: "",
-            messages: [],
-            tools: []
-        }
-
-
-    constructor(data: {
-        LLMRequestFunction: (messages: Message[], tools: Tool[]) => Promise<{
+export class AppExecutor {
+    constructor(
+        private LMRequestFunction: (messages: Message[], tools: Tool[]) => Promise<{
             tool_call?: {
                 name: string;
                 arguments: any;
             };
-        }>;
-        apps: APPS;
-        goal: string;
-    }) {
-        this.data = data;
-        this.OSApp.state.apps = this.data.apps;
+        }>,
+        public readonly app: IApp<any, any>
+    ) {
     }
 
     async act() {
-        const basePrompt = this.OSApp.getBasePrompt();
-        const messages = this.OSApp.getCurrentWindow().messages;
-        const tools = this.OSApp.getCurrentWindow().availableFunctions;
-        const windowMessages = [{ role: "user", content: basePrompt }, { role: "system", content: this.data.goal }, ...messages];
+        const basePrompt = this.app.getBasePrompt();
+        const messages = this.app.getCurrentWindow().messages;
+        const tools = this.app.getCurrentWindow().availableFunctions;
+        const windowMessages = [{ role: "user", content: basePrompt }, ...messages];
 
-        this.currentWindow = {
-            basePrompt: basePrompt,
-            messages: windowMessages,
-            tools: tools
-        }
-
-        const response = await this.data.LLMRequestFunction(windowMessages, tools);
+        const response = await this.LMRequestFunction(windowMessages, tools);
 
         if (!response.tool_call) {
             // throw new Error("No tool call found");
@@ -172,11 +140,6 @@ export class LLMOS<APPS extends Record<string, (IApp<any, any>) | App<any, any>>
 
         const { name: toolCallName, arguments: toolCallArgs } = response.tool_call;
 
-        this.OSApp.pressButton(toolCallName, toolCallArgs);
+        this.app.pressButton(toolCallName, toolCallArgs);
     }
-
-    getCurrentWindow() {
-        return this.currentWindow;
-    }
-
 }
