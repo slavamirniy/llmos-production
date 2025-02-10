@@ -126,8 +126,9 @@ export class AppExecutor {
 
     async act() {
         const basePrompt = this.app.getBasePrompt();
-        const messages = this.app.getCurrentWindow().messages;
-        const tools = this.app.getCurrentWindow().availableFunctions;
+        const window = this.app.getCurrentWindow();
+        const messages = window.messages;
+        const tools = window.availableFunctions;
         const windowMessages = [{ role: "user", content: basePrompt }, ...messages];
 
         const response = await this.LMRequestFunction(windowMessages, tools);

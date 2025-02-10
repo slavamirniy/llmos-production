@@ -211,7 +211,7 @@ export class AddonsCollector<APP extends IApp<any, any>> {
         return new AddonsCollector(app);
     }
 
-    use<NEW_APP extends IApp<any, any>>(addon: Pick<AddonBuilder<APP, any, any>, 'setApp'>): AddonsCollector<APP> {
+    use(addon: Pick<AddonBuilder<APP, any, any>, 'setApp'>): AddonsCollector<APP> {
         this.app = addon.setApp(this.app).build() as unknown as APP;
         return this as unknown as AddonsCollector<APP>;
     }
