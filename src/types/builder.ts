@@ -123,13 +123,13 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
 
     constructor(private data: {
         app?: BASEAPP,
+        initState?: Partial<STATE>,
         functionsMiddleware?: FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
         stateGenerator?: () => STATE,
         windowMiddleware?: WindowMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
         buttonPressHandlerMiddleware?: ButtonPressHandlerMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
         basePromptMiddleware?: BasePromptMiddleware<STATE, BASEAPP['state']>,
         appDescriptionMiddleware?: AppDescriptionMiddleware
-
     }) { }
 
 
@@ -168,6 +168,11 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
 
     setAppDescriptionMiddleware(middleware: AppDescriptionMiddleware) {
         this.data.appDescriptionMiddleware = middleware;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setInitState'>;
+    }
+
+    setInitState(initState: Partial<STATE>) {
+        this.data.initState = initState;
         return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setApp'>;
     }
 
@@ -176,7 +181,8 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'build'>;
     }
 
-    build(initAddonState?: Partial<STATE>) {
+
+    build() {
         if (!this.data.functionsMiddleware) throw new Error("Functions middleware not set");
 
         if (!this.data.stateGenerator) throw new Error("State generator not set");
@@ -185,6 +191,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         if (!this.data.basePromptMiddleware) throw new Error("Base prompt middleware not set");
         if (!this.data.appDescriptionMiddleware) throw new Error("App description middleware not set");
         if (!this.data.app) throw new Error("App not set");
+        if (!this.data.initState) throw new Error("Init state not set");
 
         const addon = new Addon(this.data.app, this.data.stateGenerator(), {
             appDescriptionMiddleware: this.data.appDescriptionMiddleware,
@@ -195,14 +202,13 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
             windowMiddleware: this.data.windowMiddleware,
         });
 
-        if (initAddonState) {
-            addon.state = { ...addon.state, ...initAddonState };
-        }
+        addon.state = { ...addon.state, ...this.data.initState };
 
         return addon;
     }
 
 }
+
 
 export class AddonsCollector<APP extends IApp<any, any>> {
     private constructor(private app: APP) { }
