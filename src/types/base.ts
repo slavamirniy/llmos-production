@@ -143,7 +143,8 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
     getGenerators() {
         return {
             functionsGenerator: (functionsCollector: any, state: any) => {
-                const f = this.app.getGenerators().functionsGenerator(functionsCollector, state).getFunctions();
+                const funcs = this.app.getGenerators().functionsGenerator(functionsCollector, state)
+                const f = funcs instanceof FunctionsCollector ? funcs.getFunctions() : funcs;
                 return this.data.functionsMiddleware(f as unknown as FUNCTIONS, this.addonState, this.app.state);
             },
             windowGenerator: (state: any, generateWindow: any) => {
