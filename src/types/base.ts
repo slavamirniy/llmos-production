@@ -41,7 +41,7 @@ export interface IApp<FUNCTIONS extends Record<string, WindowFunction<any, any>>
     getCurrentWindow(): WindowWithFunctions<FUNCTIONS>;
     getBasePrompt(): string;
     getAppDescription(): string;
-    pressButton<FUNCTION_NAME extends keyof FUNCTIONS>(functionName: FUNCTION_NAME, args: JsonSchemaToType<FUNCTIONS[FUNCTION_NAME]['parameters']>): void;
+    pressButton<FUNCTION_NAME extends (keyof FUNCTIONS) & string>(functionName: FUNCTION_NAME, args: JsonSchemaToType<FUNCTIONS[FUNCTION_NAME]['parameters']>): void;
     getGenerators(): {
         windowGenerator: (state: STATE, generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>) => WindowWithFunctionsNames<FUNCTIONS>,
         buttonPressHandler: ButtonPressHandler<FUNCTIONS, STATE>,
