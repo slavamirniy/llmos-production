@@ -35,13 +35,15 @@ export const OSAppBuilder = AppBuilder
         })
 
         const availableApps = Object.keys(state.apps).filter(app => !state.opennedApps.includes(app));
-        collector.add("openApp", "Open application", {
-            type: "object",
-            properties: {
-                appName: { type: "string", enum: availableApps }
-            },
-            required: ["appName"]
-        })
+        if (availableApps.length > 0) {
+            collector.add("openApp", "Open application", {
+                type: "object",
+                properties: {
+                    appName: { type: "string", enum: availableApps }
+                },
+                required: ["appName"]
+            })
+        }
 
 
         return collector as any;
@@ -50,9 +52,10 @@ export const OSAppBuilder = AppBuilder
 
         const appNames = Object.keys(state.apps);
 
+        const availableApps = Object.keys(state.apps).filter(app => !state.opennedApps.includes(app));
         if (state.opennedApps.length === 0) {
             return {
-                availableFunctions: ['openApp'],
+                availableFunctions: [...(availableApps.length > 0 ? ['openApp'] : [])],
                 messages: [{
                     role: "system",
                     content: "Available applications: " + appNames.join(", ")
@@ -66,8 +69,9 @@ export const OSAppBuilder = AppBuilder
         const messages = window.map(v => v.messages).flat();
         throwIfDuplicateToolName(tools);
 
+
         return {
-            availableFunctions: [...tools.map(v => v.function.name), 'openApp'],
+            availableFunctions: [...tools.map(v => v.function.name), ...(availableApps.length > 0 ? ['openApp'] : [])],
             messages: messages
         }
     })
