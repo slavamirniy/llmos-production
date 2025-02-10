@@ -104,6 +104,7 @@ export const OSAppBuilder = AppBuilder
         return state;
     })
     .setBasePromptGenerator(state =>
+        "GOAL: " + state.goal + "\n" +
         "You are in an operating system. There are different applications here. You can open them using tools - openApp and close them using tools - closeApp.\n" +
         "Description of available applications: " + Object.keys(state.apps).map(app => "Application " + app + ": " + state.apps[app].getAppDescription()).join("\n") + "\n" +
         (state.opennedApps.length > 0 ? ("Context of opened applications: " + state.opennedApps.map(app => state.apps[app].getBasePrompt()).join("\n") + "\n") : "")
