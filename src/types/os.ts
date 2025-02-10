@@ -74,16 +74,12 @@ export const OSAppBuilder = AppBuilder
         throwIfDuplicateToolName(tools);
 
         return {
-            availableFunctions: tools.map(v => v.function.name),
+            availableFunctions: [tools.map(v => v.function.name), 'openApp'],
             messages: messages
         }
     })
     .setButtonPressHandler(data => {
         const state = data.state.get();
-        if (data.function.name === "closeApp") {
-            state.opennedApps = [];
-            return state;
-        }
 
         if (data.function.name === "openApp") {
             state.opennedApps = [((data.function.args as any).appName as string)];
