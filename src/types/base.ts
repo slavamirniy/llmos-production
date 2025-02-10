@@ -78,6 +78,7 @@ export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STA
     }
 
     private prepareWindow(window: WindowWithFunctionsNames<FUNCTIONS>): WindowWithFunctions<FUNCTIONS> {
+        // @ts-ignore
         const currentFunctions = this.functionsGenerator(new FunctionsCollector(), this.state).getFunctions();
         const functions = window.availableFunctions.map(v => ({
             name: v,
