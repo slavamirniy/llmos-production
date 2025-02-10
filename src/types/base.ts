@@ -129,7 +129,7 @@ export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STA
 export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> implements IApp<FUNCTIONS, STATE> {
     constructor(
         private app: BASEAPP,
-        private addonState: STATE,
+        public addonState: STATE,
         private data: {
             functionsMiddleware: FunctionsMiddleware<FUNCTIONS, STATE, BASEAPP['state']>,
             stateGenerator: () => STATE,
