@@ -168,7 +168,7 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
 
     setAppDescriptionMiddleware(middleware: AppDescriptionMiddleware) {
         this.data.appDescriptionMiddleware = middleware;
-        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setInitState'>;
+        return this as unknown as Pick<AddonBuilder<BASEAPP, FUNCTIONS, STATE>, 'setInitState' | 'setApp'>;
     }
 
     setInitState(initState: Partial<STATE>) {
@@ -191,7 +191,6 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
         if (!this.data.basePromptMiddleware) throw new Error("Base prompt middleware not set");
         if (!this.data.appDescriptionMiddleware) throw new Error("App description middleware not set");
         if (!this.data.app) throw new Error("App not set");
-        if (!this.data.initState) throw new Error("Init state not set");
 
         const addon = new Addon(this.data.app, this.data.stateGenerator(), {
             appDescriptionMiddleware: this.data.appDescriptionMiddleware,
@@ -202,7 +201,9 @@ export class AddonBuilder<BASEAPP extends IApp<any, any>, FUNCTIONS extends Reco
             windowMiddleware: this.data.windowMiddleware,
         });
 
-        addon.state = { ...addon.state, ...this.data.initState };
+        if (this.data.initState) {
+            addon.state = { ...addon.state, ...this.data.initState };
+        }
 
         return addon;
     }
