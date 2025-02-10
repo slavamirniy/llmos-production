@@ -96,7 +96,8 @@ export const OSAppBuilder = AppBuilder
         );
 
         if (!app) {
-            throw new Error(`App not found for tool call: ${data.function.name}`);
+            // throw new Error(`App not found for tool call: ${data.function.name}`);
+            return state;
         }
 
         state.apps[app].pressButton(data.function.name, data.function.args);
