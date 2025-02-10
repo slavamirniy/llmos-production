@@ -153,14 +153,15 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
             buttonPressHandler: (data: any) => {
                 const appstate = this.app.getGenerators().buttonPressHandler(data);
                 this.addonState = this.data.buttonPressHandlerMiddleware({
-                    ...data,
+                    appState: {
+                        get: () => appstate
+                    },
                     addonState: {
                         get: () => this.addonState
-                    }
+                    },
+                    function: data.function
                 });
                 return appstate;
-
-
             },
             basePromptGenerator: (state: any) => {
                 const basePrompt = this.app.getGenerators().basePromptGenerator(state);
