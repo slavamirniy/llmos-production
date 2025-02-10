@@ -26,7 +26,7 @@ export class FunctionsCollector<F extends Record<string, any>, STATE> {
 }
 
 
-export type FunctionsGenerator<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> = (functionCollector: FunctionsCollector<{}, STATE>, state: STATE) => FunctionsCollector<FUNCTIONS, STATE>;
+export type FunctionsGenerator<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> = (functionCollector: FunctionsCollector<{}, STATE>, state: STATE) => FUNCTIONS;
 export type InferFunctionsFromFunctionsGenerator<T> = T extends FunctionsGenerator<infer F, any> ? F : never;
 
 

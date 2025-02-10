@@ -32,7 +32,7 @@ export type ButtonPressHandler<FUNCTIONS extends Record<string, WindowFunction<a
     } }[keyof FUNCTIONS],
     state: { get: () => STATE },
     generateWindow: (state: STATE) => WindowWithFunctionsNames<FUNCTIONS>
-}) => STATE;
+}) => Promise<STATE> | STATE;
 
 export type FunctionsToGeneratorType<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STATE extends Record<string, any>> = { [K in keyof FUNCTIONS]: (state: STATE) => { functionDescription: FUNCTIONS[K]['description'], schema: FUNCTIONS[K]['parameters'] } };
 
@@ -96,11 +96,11 @@ export class App<FUNCTIONS extends Record<string, WindowFunction<any, any>>, STA
         }
     }
 
-    pressButton<FUNCTION_NAME extends keyof FUNCTIONS>(
+    async pressButton<FUNCTION_NAME extends keyof FUNCTIONS>(
         functionName: FUNCTION_NAME,
         args: JsonSchemaToType<FUNCTIONS[FUNCTION_NAME]['parameters']>
-    ): void {
-        const newstate = this.buttonPressHandler({
+    ): Promise<void> {
+        const newstate = await this.buttonPressHandler({
             function: {
                 name: functionName,
                 args
