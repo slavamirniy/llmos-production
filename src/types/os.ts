@@ -34,13 +34,16 @@ export const OSAppBuilder = AppBuilder
             collector.add(tool.function.name, tool.function.description, tool.function.parameters)
         })
 
-        collector.add("openApp", "Open application", {
-            type: "object",
-            properties: {
-                appName: { type: "string", enum: Object.keys(state.apps) }
-            },
-            required: ["appName"]
-        })
+        const availableApps = Object.keys(state.apps).filter(app => !state.opennedApps.includes(app));
+        if (availableApps.length > 0) {
+            collector.add("openApp", "Open application", {
+                type: "object",
+                properties: {
+                    appName: { type: "string", enum: availableApps }
+                },
+                required: ["appName"]
+            })
+        }
 
         return collector as any;
     })
