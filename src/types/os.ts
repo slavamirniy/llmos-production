@@ -136,6 +136,6 @@ export class AppExecutor {
 
         const { name: toolCallName, arguments: toolCallArgs } = response.tool_call;
 
-        this.app.pressButton(toolCallName, toolCallArgs);
+        await this.app.pressButton(toolCallName, toolCallArgs);
     }
 }
