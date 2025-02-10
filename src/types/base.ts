@@ -141,11 +141,43 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
     ) {
 
     }
-    
-    getGenerators() {
-        return this.app.getGenerators();
-    }
 
+    getGenerators() {
+        return {
+            functionsGenerator: (functionsCollector: any, state: any) => {
+                const f = this.app.getGenerators().functionsGenerator(functionsCollector, state);
+                return this.data.functionsMiddleware(f as unknown as FUNCTIONS, this.addonState, this.app.state);
+            },
+            windowGenerator: (state: any, generateWindow: any) => {
+                const window = this.app.getGenerators().windowGenerator(state, generateWindow);
+                return this.data.windowMiddleware(window, this.addonState, state);
+            },
+            buttonPressHandler: (functionName: any, args: any) => {
+                const appstate = this.app.getGenerators().buttonPressHandler({
+                    function: {
+                        name: functionName as any,
+                        args
+                    },
+                    state: {
+                        get: () => this.state
+                    },
+                    generateWindow: this.generateWindow
+                });
+
+                return appstate;
+            },
+            basePromptGenerator: (state: any) => {
+                const basePrompt = this.app.getGenerators().basePromptGenerator(state);
+                const basePromptMiddlewared = this.data.basePromptMiddleware(basePrompt, this.addonState, state);
+                return basePromptMiddlewared;
+            },
+            appDescription: () => {
+                const appDescription = this.app.getGenerators().appDescription;
+                const appDescriptionMiddlewared = this.data.appDescriptionMiddleware(appDescription);
+                return appDescriptionMiddlewared;
+            }
+        } as any
+    }
 
     get state() {
         return this.app.state;
@@ -161,29 +193,22 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
         return windowMiddlewared;
     }
 
-
     getCurrentWindow(): WindowWithFunctions<FUNCTIONS> {
-        const window = this.app.getGenerators().windowGenerator(this.app.state, this.generateWindow);
-        const windowMiddlewared = this.data.windowMiddleware(window, this.addonState, this.app.state);
+        const windowMiddlewared = this.getGenerators().windowGenerator(this.app.state, this.generateWindow);
         return this.prepareWindow(windowMiddlewared);
     }
 
     getBasePrompt(): string {
-        const basePrompt = this.app.getGenerators().basePromptGenerator(this.app.state);
-        const basePromptMiddlewared = this.data.basePromptMiddleware(basePrompt, this.addonState, this.app.state);
-        return basePromptMiddlewared;
+        return this.getGenerators().basePromptGenerator(this.app.state);
     }
-
 
     getAppDescription(): string {
-        const appDescription = this.app.getGenerators().appDescription;
-        const appDescriptionMiddlewared = this.data.appDescriptionMiddleware(appDescription);
-        return appDescriptionMiddlewared;
+        return this.getGenerators().appDescription();
     }
 
+
     private prepareWindow(window: WindowWithFunctionsNames<FUNCTIONS>): WindowWithFunctions<FUNCTIONS> {
-        const currentFunctions = this.app.getGenerators().functionsGenerator(new FunctionsCollector(), this.app.state).getFunctions();
-        const middlewaredFunctions = this.data.functionsMiddleware(currentFunctions, this.addonState, this.app.state);
+        const middlewaredFunctions = this.getGenerators().functionsGenerator(new FunctionsCollector(), this.app.state).getFunctions();
         const functions = window.availableFunctions.map(v => ({
             name: v,
             function: middlewaredFunctions[v]
@@ -205,19 +230,8 @@ export class Addon<BASEAPP extends IApp<any, any>, FUNCTIONS extends Record<stri
         functionName: FUNCTION_NAME,
         args: JsonSchemaToType<FUNCTIONS[FUNCTION_NAME]['parameters']>
     ): void {
-        const appstate = this.app.getGenerators().buttonPressHandler({
-            function: {
-                name: functionName as any,
-                args
-            },
-            state: {
-                get: () => this.state
-            },
-            generateWindow: this.generateWindow
-        });
+        this.app.state = this.getGenerators().buttonPressHandler(functionName, args);
 
-        this.app.state = appstate;
-        
         const addonstate = this.data.buttonPressHandlerMiddleware({
             function: {
                 name: functionName as any,
