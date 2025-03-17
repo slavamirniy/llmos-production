@@ -10,7 +10,8 @@ export type WindowFunction<PROPS extends JsonSchemaProperty & { type: "object" }
 
 export type Message = {
     role: string,
-    content: string
+    content: string,
+    partName?: string
 }
 
 export type WindowWithFunctionsNames<FUNCTIONS extends Record<string, WindowFunction<any, any>>> = {
