@@ -11,7 +11,22 @@ export type WindowFunction<PROPS extends JsonSchemaProperty & { type: "object" }
 export type Message = {
     role: string,
     content: string,
+    partName?: string,
+    schema?: JsonSchemaProperty
+}
+
+export function schemedMessage<T extends JsonSchemaProperty>(message: {
+    schema: T,
+    content: JsonSchemaToType<T>,
+    role: string,
     partName?: string
+}): Message {
+    return {
+        role: message.role,
+        content: JSON.stringify(message.content),
+        partName: message.partName,
+        schema: message.schema
+    };
 }
 
 export type WindowWithFunctionsNames<FUNCTIONS extends Record<string, WindowFunction<any, any>>> = {
